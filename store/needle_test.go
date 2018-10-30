@@ -13,7 +13,7 @@ func TestBarn_NeedleParseData(t *testing.T) {
 	needle.Offset = 1
 	needle.Name = "aweomse.jpg"
 	data, _ := ioutil.ReadFile("C:/Users/zhouqing1/Desktop/store.jpg")
-	needle.data = data
+	needle.FileBytes = data
 	needle.Size = uint32(len(data))
 
 	data, err := needle.CreateWriteBytes()

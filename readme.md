@@ -1,12 +1,5 @@
 
 
----
-layout: post
-title: 分布式文件存储系统
-category: Raft
-tags: Raft,Golang
-description: a file storage system like seaweedfs
----
 
 
 ## 路线图

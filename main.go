@@ -15,13 +15,13 @@
 package main
 
 import (
-	_ "github.com/dejavuzhou/spookyfs/initialization"
-	"github.com/dejavuzhou/spookyfs/store"
+	_ "github.com/dejavuzhou/evefs/initialization"
+	"github.com/dejavuzhou/evefs/store"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	b := store.NewBarn("127.0.0.1:8787", "temp", 4)
+	b := store.NewStore("127.0.0.1:8787", "temp", 4)
 	//b.Db.Put([]byte("key"), []byte("awesome is mime!"), nil)
 	data, _ := b.Db.Get([]byte("key"), nil)
 	logrus.Info(string(data))

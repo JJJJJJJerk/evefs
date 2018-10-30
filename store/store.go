@@ -2,8 +2,8 @@ package store
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"math/rand"
@@ -50,6 +50,9 @@ func (s *Store) createLevelDb() {
 	}
 	s.Db = db
 }
+
+var NeedleMaxAutoIncrementIdKey = []byte("NeedleMaxAutoIncrementIdKey")
+
 func (s *Store) parseNeedleMaxAutoIncrementId() {
 	if s.Db == nil {
 		logrus.Fatalln("Store's level DB has not initialized yet!")
@@ -63,9 +66,7 @@ func (s *Store) parseNeedleMaxAutoIncrementId() {
 	}
 }
 
-var NeedleMaxAutoIncrementIdKey = []byte("NeedleMaxAutoIncrementIdKey")
-
-func NewBarn(ipPort string, dataDir string, stackCount int) *Store {
+func NewStore(ipPort string, dataDir string, stackCount int) *Store {
 	b := Store{}
 	b.IpPort = ipPort
 	b.StackCount = stackCount
@@ -86,12 +87,12 @@ func (s *Store) PutFile(file *multipart.FileHeader) (*Needle, error) {
 	stackId := rand.Intn(s.StackCount)
 	//write binary
 	hs := s.Stacks[stackId]
-	needle, err := hs.PutFileHead(file)
+	needle, err := hs.WriteFileHeader(file)
 	if err != nil {
 		return nil, err
 	}
-	//write needle data to level db
-	jsonData, err := json.Marshal(needle)
+	//write needle FileBytes to level db
+	jsonData, err := proto.Marshal(needle)
 	//TODO:: 可以检查文件是否存在直接返回相同的offset
 	err = s.Db.Put(needle.IdToByets(), jsonData, nil)
 	if err != nil {
@@ -110,12 +111,26 @@ func (s *Store) GetAllFile() {
 
 }
 
-func (s *Store) GetOneWithId(id []byte) (needle *Needle) {
+func (s *Store) getNeedleFromDb(id []byte) (needle *Needle, err error) {
 	jsonData, err := s.Db.Get(id, nil)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var n = &Needle{}
-	json.Unmarshal(jsonData, n)
-	return n
+	proto.Unmarshal(jsonData, n)
+	return n, nil
+}
+
+func (s *Store) GetFile(id []byte) (n *Needle, err error) {
+	n, err = s.getNeedleFromDb(id)
+	if err != nil {
+		return nil, err
+	}
+	hs := s.Stacks[n.StackId]
+	err = hs.ReadFileBytes(n)
+	if err != nil {
+		return n, err
+	}
+	
+	return n, nil
 }

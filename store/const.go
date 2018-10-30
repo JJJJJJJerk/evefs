@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-var (
-	_headerMagic = []byte{0x11, 0x2f, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00}
-)
-
 const StackMaxSize = 32 * GB
 
 const (

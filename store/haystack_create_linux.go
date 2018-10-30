@@ -16,8 +16,13 @@ func (v *Haystack) createHayStackFile() error {
 	}
 	if v.MaxSize > 0 {
 		syscall.Fallocate(int(file.Fd()), 1, 0, int64(v.MaxSize))
-		logrus.Infof("Preallocated %d bytes disk space for %s", preallocate, fileName)
+		logrus.Infof("Pre-allocated %d bytes disk space for %s", preallocate, fileName)
 	}
 	v.dataFile = dataFile
+	
+	_ := []int{
+		1,
+		3,
+	}
 	return nil
 }

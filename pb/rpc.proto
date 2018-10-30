@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+
+package pb;
+
+// The greeting service definition.
+service RpcService {
+    // Sends a greeting
+    rpc WriteFile (PutData) returns (NeedlePb) {
+    }
+    rpc ReadFile (NeedlePb) returns (PutData) {
+    }
+    rpc Status (Node) returns (NodeStatus) {
+    }
+}
+
+// The request message containing the user's name.
+message PutData {
+    uint64 Id = 1;
+    fixed32 StoreId = 2;
+    fixed32 StackId = 3;
+    string Name = 4;
+    string Mime = 5;
+    bytes FileData = 6;
+}
+message NeedlePb {
+    uint64 Id = 1;
+    fixed32 StoreId = 2;
+    fixed32 StackId = 3;
+    fixed32 Offset = 4;
+    fixed32 Flags = 5;
+    string Name = 6;
+    fixed32 Size = 7;
+    string Mime = 8;
+    fixed32 CheckSum = 9;
+}
+
+
+message Node {
+    fixed32 Id = 1;
+}
+message NodeStatus {
+    uint64 Capacity = 1;
+    uint64 Used = 2;
+    fixed32 FileCount = 3;
+    uint64 StartTs = 4;
+    string Name = 5;
+}

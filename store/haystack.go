@@ -33,5 +33,5 @@ func NewHaystack(id int, maxSize ByteSize, barnDir string) *Haystack {
 }
 
 func (h *Haystack) FileName() string {
-	return fmt.Sprintf("%s/%d.data", h.barnDir, h.Id)
+	return fmt.Sprintf("%s/%d.FileBytes", h.barnDir, h.Id)
 }

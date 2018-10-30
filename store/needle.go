@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/dejavuzhou/evefs/pb"
 	"github.com/sirupsen/logrus"
 	"hash/crc32"
 	"io/ioutil"
@@ -11,32 +12,46 @@ import (
 	"strconv"
 )
 
-type Needle struct {
-	Id      int64  `comment:"random number to mitigate brute force lookups"`
-	StackId uint8  `comment:"random number to mitigate brute force lookups"`
-	Offset  uint32 `comment:"sum of DataSize,Data,NameSize,GetDataDirPath,MimeSize,Mime"`
-	Flags   uint8  `comment:"boolean flags"`          //version2
-	Name    string `comment:"maximum 256 characters"` //version2
+var (
+	// use magic header/footer 8 bytes for repairing FileBytes
+	magicHeader = []byte("felixeve")
+	magicFooter = []byte("felixout")
+)
 
-	Size uint32 `comment:"sum of DataSize,Data,NameSize,GetDataDirPath,MimeSize,Mime"`
-	Mime string `comment:"maximum 256 characters"` //version2
-	//Checksum   uint32 `comment:"CRC32 to check integrity"`
-	data     []byte `comment:"The actual file data"`
-	checkSum uint32
+//needle
+
+//type Needle struct {
+//	Id      int64
+//	StackId uint8
+//	Offset  uint32
+//	Flags   uint8
+//	Name    string
+//
+//	Size uint32
+//	Mime string
+//	//Checksum   uint32 `comment:"CRC32 to check integrity"`
+//	FileBytes []byte `json:"-"`
+//	CheckSum  uint32
+//}
+
+type Needle struct {
+	pb.NeedlePb
+	FileBytes []byte `json:"-"`
 }
 
 func (n *Needle) IdToByets() []byte {
-	numbers := strconv.FormatInt(n.Id, 10)
+	numbers := strconv.FormatUint(n.Id, 10)
 	return []byte(numbers)
 }
 
 func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needle *Needle, err error) {
 	needle = &Needle{}
-	needle.Id = needleId
+	needle.Id = uint64(needleId)
 	needle.Flags = 0
-	needle.StackId = stackId
+	needle.StackId = uint32(stackId)
 	needle.Name = file.Filename
 	needle.Size = uint32(file.Size)
+	//TODO 这个地方有可能会panic
 	heads := file.Header["Content-Type"]
 	needle.Mime = heads[0]
 
@@ -48,17 +63,17 @@ func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needl
 	if err != nil {
 		return nil, err
 	}
-	needle.data = data
-	needle.checkSum = crc32.ChecksumIEEE(data)
+	needle.FileBytes = data
+	needle.CheckSum = crc32.ChecksumIEEE(data)
 	return needle, nil
 }
 
 func (n *Needle) LevelDbCrc32Key() (crcBytes []byte) {
-	if n.Size < 1 || n.checkSum < 0 {
-		err := errors.New("needle has not initialized fully, data, checkSum, and size are required")
+	if n.Size < 1 || n.CheckSum < 0 {
+		err := errors.New("needle has not initialized fully, FileBytes, CheckSum, and size are required")
 		logrus.Fatal(err)
 	}
-	crc32Size := fmt.Sprint("%x,%x", n.checkSum, n.Size)
+	crc32Size := fmt.Sprint("%x,%x", n.CheckSum, n.Size)
 	return []byte(crc32Size)
 }
 
@@ -76,53 +91,16 @@ func bytesToUint32(b []byte) (v uint32) {
 	v += uint32(b[length-1])
 	return
 }
-func (n *Needle) CreateWriteBytes() (blob []byte, err error) {
-	if n.Size == 0 || len(n.data) == int(n.Size) || n.checkSum == 0 {
-		return nil, errors.New("needle has not initialized fully, data,checkSum, and size are required")
-	}
-	// the header is 8 byte
-	header := make([]byte, NeedlePaddingSize, NeedlePaddingSize)
-	//write first 4 bytes with crc32 return value
-	//the reset 4 bytes are unused
-	uint32toBytes(header, n.checkSum)
-	//create paddingBytes bytes to align
-	padNum := int(NeedlePaddingSize) - len(n.data)%int(NeedlePaddingSize)
-	paddingBytes := make([]byte, padNum, padNum)
-	//write bytes in following order header(crc32) + data + paddingBytes
-	buf := bytes.Buffer{}
-	_, err = buf.Write(header)
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(n.data)
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(paddingBytes)
-	if err != nil {
-		return nil, err
-	}
-	n.data = nil
-	blobBinary := buf.Bytes()
-	return blobBinary, err
-}
 
-func (n *Needle) paresData(b []byte) error {
-	//crs32 checksum returning uint32 only uses 4 byte, the rest 4 bytes are unused
-	headerCrc32bytes := b[0:4]
-	checkSum := bytesToUint32(headerCrc32bytes)
-	//get file data bytes
-	toIdx := n.Size + uint32(NeedlePaddingSize)
-	fromIdx := NeedlePaddingSize * 1
-	data := b[fromIdx:toIdx]
-	//check file data's CRC32
-	if crc32.ChecksumIEEE(data) != checkSum {
-		err := errors.New("needle parse error. volume file is broken")
-		return err
-	}
-	n.data = data
-	return nil
-}
+/**
+		-----------------------------
+		|-headerCrc32 8 bytes  first 4 byes is crc32Uint 5th byte is pad-length, 6th 7th 8th bytes are reserved
+		|-magicHeader 8  bytes
+ needle-|
+		|-FileBytes + padding bytes 8 * n bytes
+		|-magicFooter 8  bytes
+		-----------------------------
+*/
 
 //func NewNeedleFileHeader(file *multipart.FileHeader) (n *Needle, err error) {
 //
@@ -130,3 +108,46 @@ func (n *Needle) paresData(b []byte) error {
 //	n = Needle{}
 //	return nil, err
 //}
+
+func (n *Needle) createNeedleBytes() (needleBytes []byte, err error) {
+	if n.Size == 0 || len(n.FileBytes) != int(n.Size) || n.CheckSum == 0 {
+		return nil, errors.New("needle has not initialized fully, FileBytes,CheckSum, and size are required")
+	}
+	// the headerCrc32 is 8 byte
+	headerCrc32 := make([]byte, NeedlePaddingSize, NeedlePaddingSize)
+	//write first 4 bytes with crc32 return value
+	//the reset 4 bytes are unused
+	uint32toBytes(headerCrc32, n.CheckSum)
+	//create paddingBytes bytes to align
+	padNum := int(NeedlePaddingSize) - len(n.FileBytes)%int(NeedlePaddingSize)
+	
+	//set the headerCrc32 5th byte padNum
+	headerCrc32[4] = byte(padNum)
+	//paddingBytes
+	paddingBytes := make([]byte, padNum, padNum)
+	//write bytes in following order headerCrc32(crc32) + FileBytes + paddingBytes
+	buf := bytes.Buffer{}
+	_, err = buf.Write(headerCrc32)
+	if err != nil {
+		return nil, err
+	}
+	_, err = buf.Write(magicHeader)
+	if err != nil {
+		return nil, err
+	}
+	_, err = buf.Write(n.FileBytes)
+	if err != nil {
+		return nil, err
+	}
+	_, err = buf.Write(paddingBytes)
+	if err != nil {
+		return nil, err
+	}
+	_, err = buf.Write(magicFooter)
+	if err != nil {
+		return nil, err
+	}
+	n.FileBytes = nil
+	needleBytes = buf.Bytes()
+	return needleBytes, nil
+}
