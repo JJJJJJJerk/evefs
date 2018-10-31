@@ -14,16 +14,22 @@ func init() {
 	
 }
 
-// server is used to implement helloworld.GreeterServer.
-type server struct{}
+// rpcServer is used to implement helloworld.GreeterServer.
+type rpcServer struct {
+	AllowIp string
+}
 
-func (s *server) WriteFile(ctx context.Context, in *pb.PutData) (*pb.NeedlePb, error) {
+func (s *rpcServer) WriteFile(ctx context.Context, in *pb.NeedlePb) (*pb.NeedlePb, error) {
+	hs := nodeStore.Stacks[in.HaystackId]
+	hs.WriteNeedPb(in)
+	return in, nil
+}
+func (s *rpcServer) ReadFile(ctx context.Context, in *pb.NeedlePb) (*pb.NeedlePb, error) {
+	
+	return in, nil
+}
+func (s *rpcServer) Status(ctx context.Context, in *pb.Node) (*pb.NodeStatus, error) {
+
 	return nil, nil
 }
-func (s *server) ReadFile(ctx context.Context, in *pb.NeedlePb) (*pb.PutData, error) {
-	//
-	return nil, nil
-}
-func (s *server) Status(ctx context.Context, in *pb.Node) (*pb.NodeStatus, error) {
-	return nil, nil
-}
+

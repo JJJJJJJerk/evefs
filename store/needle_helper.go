@@ -20,7 +20,7 @@ var (
 
 //needle
 
-//type Needle struct {
+//type needle struct {
 //	Id      int64
 //	StackId uint8
 //	Offset  uint32
@@ -34,26 +34,21 @@ var (
 //	CheckSum  uint32
 //}
 
-type Needle struct {
-	pb.NeedlePb
-	FileBytes []byte `json:"-"`
-}
-
-func (n *Needle) IdToByets() []byte {
+func IdToByets(n *pb.NeedlePb) []byte {
 	numbers := strconv.FormatUint(n.Id, 10)
 	return []byte(numbers)
 }
 
-func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needle *Needle, err error) {
-	needle = &Needle{}
+func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needle *pb.NeedlePb, err error) {
+	needle = &pb.NeedlePb{}
 	needle.Id = uint64(needleId)
 	needle.Flags = 0
-	needle.StackId = uint32(stackId)
+	needle.HaystackId = uint32(stackId)
 	needle.Name = file.Filename
 	needle.Size = uint32(file.Size)
 	//TODO 这个地方有可能会panic
 	heads := file.Header["Content-Type"]
-	needle.Mime = heads[0]
+	needle.MimeType = heads[0]
 
 	tempFile, err := file.Open()
 	if err != nil {
@@ -68,7 +63,7 @@ func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needl
 	return needle, nil
 }
 
-func (n *Needle) LevelDbCrc32Key() (crcBytes []byte) {
+func LevelDbCrc32Key(n *pb.NeedlePb) (crcBytes []byte) {
 	if n.Size < 1 || n.CheckSum < 0 {
 		err := errors.New("needle has not initialized fully, FileBytes, CheckSum, and size are required")
 		logrus.Fatal(err)
@@ -102,14 +97,14 @@ func bytesToUint32(b []byte) (v uint32) {
 		-----------------------------
 */
 
-//func NewNeedleFileHeader(file *multipart.FileHeader) (n *Needle, err error) {
+//func NewNeedleFileHeader(file *multipart.FileHeader) (n *pb.NeedlePb, err error) {
 //
 //
-//	n = Needle{}
+//	n = needle{}
 //	return nil, err
 //}
 
-func (n *Needle) createNeedleBytes() (needleBytes []byte, err error) {
+func createNeedleBytes(n *pb.NeedlePb) (needleBytes []byte, err error) {
 	if n.Size == 0 || len(n.FileBytes) != int(n.Size) || n.CheckSum == 0 {
 		return nil, errors.New("needle has not initialized fully, FileBytes,CheckSum, and size are required")
 	}

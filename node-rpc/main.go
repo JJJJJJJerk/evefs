@@ -17,6 +17,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterRpcServiceServer(s, &server{})
+	temp := &rpcServer{}
+	pb.RegisterRpcServiceServer(s, temp)
 	s.Serve(lis)
 }

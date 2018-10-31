@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"fmt"
+	"github.com/dejavuzhou/evefs/pb"
 	"github.com/dejavuzhou/evefs/snowflake"
 	"mime/multipart"
 )
@@ -20,7 +21,7 @@ import (
 */
 
 // writeNeedleBytes append a blob to end of the FileBytes file, used in replication
-func (hs *Haystack) writeNeedleBytes(n *Needle) (err error) {
+func (hs *Haystack) writeNeedleBytes(n *pb.NeedlePb) (err error) {
 	offset, err := hs.dataFile.Seek(0, 2)
 	if err != nil {
 		return errors.New("failed to seek the end of file")
@@ -41,7 +42,7 @@ func (hs *Haystack) writeNeedleBytes(n *Needle) (err error) {
 		}
 	}
 	//create needle bytes
-	needleByets, err := n.createNeedleBytes()
+	needleByets, err := createNeedleBytes(n)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (hs *Haystack) writeNeedleBytes(n *Needle) (err error) {
 	return
 }
 
-func (hs *Haystack) WriteFileHeader(fh *multipart.FileHeader) (*Needle, error) {
+func (hs *Haystack) WriteFileHeader(fh *multipart.FileHeader) (*pb.NeedlePb, error) {
 	node, err := snowflake.NewNode(int64(hs.Id))
 	if err != nil {
 		return nil, err
@@ -69,4 +70,11 @@ func (hs *Haystack) WriteFileHeader(fh *multipart.FileHeader) (*Needle, error) {
 		return nil, err
 	}
 	return n, err
+}
+func (hs *Haystack) WriteNeedPb(n *pb.NeedlePb) (error) {
+	
+	if err := hs.writeNeedleBytes(n); err != nil {
+		return err
+	}
+	return nil
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"github.com/dejavuzhou/evefs/pb"
 	"hash/crc32"
 )
 
@@ -16,7 +17,7 @@ import (
 		-----------------------------
 
 */
-func (hs *Haystack) ReadFileBytes(n *Needle) error {
+func (hs *Haystack) ReadFileBytes(n *pb.NeedlePb) error {
 	
 	osOffset := int64(n.Offset) * NeedlePaddingSize
 	padNum := NeedlePaddingSize - int64(n.Size)%NeedlePaddingSize

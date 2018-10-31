@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/dejavuzhou/evefs/pb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -82,7 +83,7 @@ func NewStore(ipPort string, dataDir string, stackCount int) *Store {
 	return &b
 }
 
-func (s *Store) PutFile(file *multipart.FileHeader) (*Needle, error) {
+func (s *Store) PutFile(file *multipart.FileHeader) (*pb.NeedlePb, error) {
 	//get a random stackId
 	stackId := rand.Intn(s.StackCount)
 	//write binary
@@ -94,7 +95,7 @@ func (s *Store) PutFile(file *multipart.FileHeader) (*Needle, error) {
 	//write needle FileBytes to level db
 	jsonData, err := proto.Marshal(needle)
 	//TODO:: 可以检查文件是否存在直接返回相同的offset
-	err = s.Db.Put(needle.IdToByets(), jsonData, nil)
+	err = s.Db.Put(IdToByets(needle), jsonData, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -111,22 +112,22 @@ func (s *Store) GetAllFile() {
 
 }
 
-func (s *Store) getNeedleFromDb(id []byte) (needle *Needle, err error) {
+func (s *Store) getNeedleFromDb(id []byte) (needle *pb.NeedlePb, err error) {
 	jsonData, err := s.Db.Get(id, nil)
 	if err != nil {
 		return nil, err
 	}
-	var n = &Needle{}
+	var n = &pb.NeedlePb{}
 	proto.Unmarshal(jsonData, n)
 	return n, nil
 }
 
-func (s *Store) GetFile(id []byte) (n *Needle, err error) {
+func (s *Store) GetFile(id []byte) (n *pb.NeedlePb, err error) {
 	n, err = s.getNeedleFromDb(id)
 	if err != nil {
 		return nil, err
 	}
-	hs := s.Stacks[n.StackId]
+	hs := s.Stacks[n.HaystackId]
 	err = hs.ReadFileBytes(n)
 	if err != nil {
 		return n, err
