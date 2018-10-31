@@ -26,8 +26,8 @@ func (hs *Haystack) writeNeedleBytes(n *pb.NeedlePb) (err error) {
 	if err != nil {
 		return errors.New("failed to seek the end of file")
 	}
-	dataPaddingSize := NeedlePaddingSize - int64(n.Size)%NeedlePaddingSize
-	needleLength := int64(n.Size) + NeedlePaddingSize*3 + dataPaddingSize
+	dataPaddingSize := NeedlePaddingSize - int64(n.FileSize)%NeedlePaddingSize
+	needleLength := int64(n.FileSize) + NeedlePaddingSize*3 + dataPaddingSize
 	//TODO:: 不知道这个bytes size 是否只是正确的
 	if offset+needleLength > int64(hs.MaxSize) {
 		err := errors.New("volume Storage is full. can not append file into it")

@@ -14,22 +14,14 @@ service RpcService {
     }
 }
 
-// The request message containing the user's name.
-message PutData {
-    uint64 Id = 1;
-    string StoreName = 2;
-    fixed32 StackId = 3;
-    string Name = 4;
-    string Mime = 5;
-    bytes FileData = 6;
-}
+
 message NeedlePb {
     uint64 Id = 1;
     fixed32 HaystackId = 3;
     fixed32 Offset = 4;
     fixed32 Flags = 5;
-    string Name = 6;
-    fixed32 Size = 7;
+    string FileName = 6;
+    fixed32 FileSize = 7;
     string MimeType = 8;
     fixed32 CheckSum = 9;
     bytes FileBytes = 10;

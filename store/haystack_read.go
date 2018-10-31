@@ -20,8 +20,8 @@ import (
 func (hs *Haystack) ReadFileBytes(n *pb.NeedlePb) error {
 	
 	osOffset := int64(n.Offset) * NeedlePaddingSize
-	padNum := NeedlePaddingSize - int64(n.Size)%NeedlePaddingSize
-	needleBytes := make([]byte, int64(n.Size)+NeedlePaddingSize*3+padNum)
+	padNum := NeedlePaddingSize - int64(n.FileSize)%NeedlePaddingSize
+	needleBytes := make([]byte, int64(n.FileSize)+NeedlePaddingSize*3+padNum)
 	
 	hs.fileLock.RLock()
 	_, err := hs.dataFile.ReadAt(needleBytes, osOffset)
@@ -39,7 +39,7 @@ func (hs *Haystack) ReadFileBytes(n *pb.NeedlePb) error {
 		return errors.New("haystack file crc32 bytes are wrong")
 	}
 	fromIdx := 2 * NeedlePaddingSize
-	toIdx := fromIdx + int64(n.Size)
+	toIdx := fromIdx + int64(n.FileSize)
 	fileData := needleBytes[fromIdx:toIdx]
 	
 	if crc32.ChecksumIEEE(fileData) != crcValue {

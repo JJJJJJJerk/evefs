@@ -25,9 +25,9 @@ var (
 //	StackId uint8
 //	Offset  uint32
 //	Flags   uint8
-//	Name    string
+//	FileName    string
 //
-//	Size uint32
+//	FileSize uint32
 //	Mime string
 //	//Checksum   uint32 `comment:"CRC32 to check integrity"`
 //	FileBytes []byte `json:"-"`
@@ -44,8 +44,8 @@ func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needl
 	needle.Id = uint64(needleId)
 	needle.Flags = 0
 	needle.HaystackId = uint32(stackId)
-	needle.Name = file.Filename
-	needle.Size = uint32(file.Size)
+	needle.FileName = file.Filename
+	needle.FileSize = uint32(file.Size)
 	//TODO 这个地方有可能会panic
 	heads := file.Header["Content-Type"]
 	needle.MimeType = heads[0]
@@ -64,11 +64,11 @@ func NewNeedle(needleId int64, stackId uint8, file *multipart.FileHeader) (needl
 }
 
 func LevelDbCrc32Key(n *pb.NeedlePb) (crcBytes []byte) {
-	if n.Size < 1 || n.CheckSum < 0 {
+	if n.FileSize < 1 || n.CheckSum < 0 {
 		err := errors.New("needle has not initialized fully, FileBytes, CheckSum, and size are required")
 		logrus.Fatal(err)
 	}
-	crc32Size := fmt.Sprint("%x,%x", n.CheckSum, n.Size)
+	crc32Size := fmt.Sprint("%x,%x", n.CheckSum, n.FileSize)
 	return []byte(crc32Size)
 }
 
@@ -105,7 +105,7 @@ func bytesToUint32(b []byte) (v uint32) {
 //}
 
 func createNeedleBytes(n *pb.NeedlePb) (needleBytes []byte, err error) {
-	if n.Size == 0 || len(n.FileBytes) != int(n.Size) || n.CheckSum == 0 {
+	if n.FileSize == 0 || len(n.FileBytes) != int(n.FileSize) || n.CheckSum == 0 {
 		return nil, errors.New("needle has not initialized fully, FileBytes,CheckSum, and size are required")
 	}
 	// the headerCrc32 is 8 byte

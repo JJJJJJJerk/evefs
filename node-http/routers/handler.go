@@ -28,10 +28,10 @@ func readFile(c *gin.Context) {
 	}
 	
 	extraHeaders := map[string]string{
-		"Content-Disposition": fmt.Sprintf(`attachment; filename="%s"`, needle.Name),
+		"Content-Disposition": fmt.Sprintf(`attachment; filename="%s"`, needle.FileName),
 	}
 	fileReader := bytes.NewBuffer(needle.FileBytes)
 	
-	c.DataFromReader(http.StatusOK, int64(needle.Size), needle.Mime, fileReader, extraHeaders)
+	c.DataFromReader(http.StatusOK, int64(needle.FileSize), needle.Mime, fileReader, extraHeaders)
 	
 }

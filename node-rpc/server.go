@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	port = ":50051"
+	port = ":12345"
 )
 
 func main() {
@@ -17,7 +17,6 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	temp := &rpcServer{}
-	pb.RegisterRpcServiceServer(s, temp)
+	pb.RegisterRpcServiceServer(s, &rpcServer{})
 	s.Serve(lis)
 }
