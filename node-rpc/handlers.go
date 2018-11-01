@@ -20,12 +20,17 @@ type rpcServer struct {
 }
 
 func (s *rpcServer) WriteFile(ctx context.Context, in *pb.NeedlePb) (*pb.NeedlePb, error) {
-	hs := nodeStore.Stacks[in.HaystackId]
-	hs.WriteNeedPb(in)
+	err := nodeStore.WriteRpc(in)
+	if err != nil {
+		return nil, err
+	}
 	return in, nil
 }
 func (s *rpcServer) ReadFile(ctx context.Context, in *pb.NeedlePb) (*pb.NeedlePb, error) {
-	
+	err := nodeStore.ReadRpc(in)
+	if err != nil {
+		return nil, err
+	}
 	return in, nil
 }
 func (s *rpcServer) Status(ctx context.Context, in *pb.Node) (*pb.NodeStatus, error) {

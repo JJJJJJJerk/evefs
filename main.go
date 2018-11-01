@@ -22,8 +22,8 @@ import (
 
 func main() {
 	b := store.NewStore("127.0.0.1:8787", "temp", 4)
-	//b.Db.Put([]byte("key"), []byte("awesome is mime!"), nil)
-	data, _ := b.Db.Get([]byte("key"), nil)
+	//b.DB.Put([]byte("key"), []byte("awesome is mime!"), nil)
+	data, _ := b.DB.Get([]byte("key"), nil)
 	logrus.Info(string(data))
 	//cmd.Execute()
 

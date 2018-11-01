@@ -1,7 +1,6 @@
 package store
 
 import (
-	"encoding/binary"
 	"fmt"
 	"github.com/dejavuzhou/evefs/pb"
 	"github.com/gogo/protobuf/proto"
@@ -14,18 +13,17 @@ import (
 )
 
 type Store struct {
-	IpPort                   string
-	Stacks                   []*Haystack
-	StackCount               int
-	StackMaxSize             ByteSize
-	Db                       *leveldb.DB
-	NeedleMaxAutoIncrementId uint32
-	dataDir                  string
-	idLock                   sync.Mutex
+	IpPort       string
+	Stacks       []*Haystack
+	StackCount   int
+	StackMaxSize ByteSize
+	DB           *leveldb.DB
+	dataDir      string
+	idLock       sync.Mutex
 }
 
 func (s *Store) Close() {
-	s.Db.Close()
+	s.DB.Close()
 }
 
 func (s *Store) GetDataDirPath() string {
@@ -49,23 +47,10 @@ func (s *Store) createLevelDb() {
 	if err != nil {
 		logrus.WithError(err).Fatal("new Store could not create level DB")
 	}
-	s.Db = db
+	s.DB = db
 }
 
-var NeedleMaxAutoIncrementIdKey = []byte("NeedleMaxAutoIncrementIdKey")
 
-func (s *Store) parseNeedleMaxAutoIncrementId() {
-	if s.Db == nil {
-		logrus.Fatalln("Store's level DB has not initialized yet!")
-	}
-	maxIdData, err := s.Db.Get(NeedleMaxAutoIncrementIdKey, nil)
-	if err != nil {
-		s.NeedleMaxAutoIncrementId = 0
-		logrus.WithError(err).Infof("store level db has no value for %s", NeedleMaxAutoIncrementIdKey)
-	} else {
-		s.NeedleMaxAutoIncrementId = binary.LittleEndian.Uint32(maxIdData)
-	}
-}
 
 func NewStore(ipPort string, dataDir string, stackCount int) *Store {
 	b := Store{}
@@ -75,7 +60,6 @@ func NewStore(ipPort string, dataDir string, stackCount int) *Store {
 	b.dataDir = dataDir
 
 	b.createLevelDb()
-	b.parseNeedleMaxAutoIncrementId()
 	for i := 0; i < stackCount; i++ {
 		hs := NewHaystack(i, StackMaxSize, b.GetDataDirPath())
 		b.Stacks = append(b.Stacks, hs)
@@ -95,7 +79,7 @@ func (s *Store) PutFile(file *multipart.FileHeader) (*pb.NeedlePb, error) {
 	//write needle FileBytes to level db
 	jsonData, err := proto.Marshal(needle)
 	//TODO:: 可以检查文件是否存在直接返回相同的offset
-	err = s.Db.Put(IdToByets(needle), jsonData, nil)
+	err = s.DB.Put(IdToByets(needle), jsonData, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +97,7 @@ func (s *Store) GetAllFile() {
 }
 
 func (s *Store) getNeedleFromDb(id []byte) (needle *pb.NeedlePb, err error) {
-	jsonData, err := s.Db.Get(id, nil)
+	jsonData, err := s.DB.Get(id, nil)
 	if err != nil {
 		return nil, err
 	}

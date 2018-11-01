@@ -3,13 +3,12 @@
 package store
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 )
 
 func (v *Haystack) createHayStackFile() error {
 	if v.MaxSize > 0 {
-		logrus.Warn("windows do not support preallcate")
+		//logrus.Warn("windows do not support preallcate")
 	}
 	fileName := v.FileName()
 	dataFile, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0644)

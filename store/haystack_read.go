@@ -25,6 +25,9 @@ func (hs *Haystack) ReadFileBytes(n *pb.NeedlePb) error {
 	
 	hs.fileLock.RLock()
 	_, err := hs.dataFile.ReadAt(needleBytes, osOffset)
+	if err != nil {
+		return err
+	}
 	hs.fileLock.RUnlock()
 	if err != nil {
 		return err
@@ -47,5 +50,5 @@ func (hs *Haystack) ReadFileBytes(n *pb.NeedlePb) error {
 	}
 	n.FileBytes = fileData
 	n.CheckSum = crcValue
-	return err
+	return nil
 }
